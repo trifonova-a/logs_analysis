@@ -6,14 +6,14 @@ import psycopg2
 
 try:
 	db = psycopg2.connect("dbname=news")
-except:
-	print("Unable to connect to the database")
+except psycopg2.Error as e:
+	print(e.pgerror)
 
 curr = db.cursor()
 
 query1 = '''select articles.title, count(log.id) as num_logs 
 	from log, articles
-	where log.path like '%' ||articles.slug|| '%' 
+	where log.path = concat('/article/', articles.slug) 
 	group by articles.title
 	order by num_logs desc
 	limit 3;
@@ -21,7 +21,7 @@ query1 = '''select articles.title, count(log.id) as num_logs
 
 query2 = '''select authors.name, count(log.id) as num_logs
 	from log, articles, authors
-	where log.path like '%' ||articles.slug|| '%'
+	where log.path = concat('/article/', articles.slug)
 	and articles.author=authors.id
 	group by authors.name
 	order by num_logs desc;
@@ -38,38 +38,23 @@ query3 = '''select time::date, percent from
 print('QUERY 1')
 curr.execute(query1)
 result = curr.fetchall()
-for elem in result:
-	print(str(elem[0]) + ' - ' + str(elem[1]) + ' views')
-print('\n')
+for (title, count) in result:
+	print("\t {} - {} views".format(title, count))
+print("-" * 70)
 
 print('QUERY 2')
 curr.execute(query2)
 result_q2 = curr.fetchall()
-for elem in result_q2:
-	print(str(elem[0]) + ' - ' + str(elem[1]) + ' views')
-print('\n')
+for (title, count) in result_q2:
+	print("\t {} - {} views".format(title, count))
+print("-" * 70)
 
 print('QUERY 3')
 curr.execute(query3)
 result_q3 = curr.fetchall()
-for elem in result_q3:
-	print(str(elem[0].strftime('%B %d, %Y')) + ' - ' + str(elem[1]) + '% errors')
-print('\n')
+for (date, percent) in result_q3:
+	print("\t {} - {}% errors".format(date.strftime('%B %d, %Y'), percent))
+print("-" * 70)
 
 curr.close()
 db.close()
-
-
-"""query 3
-create view errors as
- select status, time::date, count(id) as errors_number 
- from log 
- where status='404 NOT FOUND' 
- group by time::date, status;
-
- create view requests as
-  select time::date, count(id) as total_requests
-  from log
-  group by time::date;
-
-"""
