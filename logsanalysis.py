@@ -27,9 +27,9 @@ query2 = '''select authors.name, count(log.id) as num_logs
     order by num_logs desc;
 '''
 
-query3 = '''select time::date, percent from
+query3 = '''select TO_CHAR(time::date, 'Mon DD, YYYY'), percent from
     (select requests.time::date,
-    round(100*errors.errors_number::decimal/requests.total_requests,1)
+    round(100.0*errors.errors_number/requests.total_requests,1)
     as percent
     from requests, errors
     where errors.time::date = requests.time::date)as
@@ -54,7 +54,7 @@ print('QUERY 3')
 curr.execute(query3)
 result_q3 = curr.fetchall()
 for (date, percent) in result_q3:
-    print("\t {} - {}% errors".format(date.strftime('%B %d, %Y'), percent))
+    print("\t {} - {}% errors".format(date, percent))
 print("-" * 70)
 
 curr.close()
